@@ -1,0 +1,24 @@
+genero,ordem,familia,fonte,data_acesso
+Myotis,Chiroptera,Familia_teste_A,fixture de teste (nao verificado),2026-11-23
+Tadarida,Chiroptera,Familia_teste_A,fixture de teste (nao verificado),2026-11-23
+Rhinolophus ,Chiroptera, Familia_teste_B,fixture de teste (nao verificado),2026-11-23
+Hipposideros,Chiroptera,Familia_teste_B,fixture de teste (nao verificado),2026-11-23
+Artibeus,Chiroptera,Familia_teste_C,fixture de teste (nao verificado),2026-11-23
+Carollia,Chiroptera,Familia_teste_C,fixture de teste (nao verificado),2026-11-23
+Desmodus,Chiroptera,Familia_teste_C,fixture de teste (nao verificado),2026-11-23
+Pteropus,Chiroptera,Familia_teste_D,fixture de teste (nao verificado),2026-11-23
+Sorex,Eulipotyphla,Familia_teste_E,fixture de teste (nao verificado),2026-11-23
+Crocidura,Eulipotyphla,Familia_teste_E,fixture de teste (nao verificado),2026-11-23
+Uropsilus,Eulipotyphla,Familia_teste_F,fixture de teste (nao verificado),2026-11-23
+Talpa,Eulipotyphla,Familia_teste_F,fixture de teste (nao verificado),2026-11-23
+Erinaceus,Eulipotyphla,Familia_teste_G,fixture de teste (nao verificado),2026-11-23
+Mus,Ordem_teste_R,Familia_teste_H,fixture de teste (nao verificado),2026-11-23
+Rattus,Ordem_teste_R,Familia_teste_H,fixture de teste (nao verificado),2026-11-23
+Homo,Ordem_teste_P,Familia_teste_I,fixture de teste (nao verificado),2026-11-23
+Pan,Ordem_teste_P,Familia_teste_I,fixture de teste (nao verificado),2026-11-23
+Lepilemur,Ordem_teste_P,Familia_teste_J,fixture de teste (nao verificado),2026-11-23
+Microcebus,Ordem_teste_P,Familia_teste_J,fixture de teste (nao verificado),2026-11-23
+Canis,Ordem_teste_C,Familia_teste_K,fixture de teste (nao verificado),2026-11-23
+Felis,Ordem_teste_C,Familia_teste_L,fixture de teste (nao verificado),2026-11-23
+Bos,Ordem_teste_U,Familia_teste_M,fixture de teste (nao verificado),2026-11-23
+Generoinexistente,Chiroptera,Familia_teste_N,fixture de teste (nao verificado),2026-11-23

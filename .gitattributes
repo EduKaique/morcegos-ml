@@ -1,2 +1,5 @@
 # Dados brutos: não converter quebras de linha (CRLF original)
 data/raw/* -text
+
+# Teste verificado: o SHA256 depende dos bytes exatos (LF)
+data/seeds/teste_verificado.csv -text
