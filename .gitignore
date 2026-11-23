@@ -1,0 +1,9 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Figuras regeneráveis (python -m src.exploracao)
+results/figuras/*.png

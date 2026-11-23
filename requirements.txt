@@ -1,0 +1,9 @@
+numpy
+pandas
+scikit-learn
+matplotlib
+seaborn
+umap-learn
+imbalanced-learn
+jupyter
+pytest

@@ -1,0 +1,2 @@
+# Dados brutos: não converter quebras de linha (CRLF original)
+data/raw/* -text
