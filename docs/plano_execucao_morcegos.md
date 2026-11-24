@@ -55,14 +55,17 @@ morcegos/
 
 ### Etapa 0 — Preparação e exploração dos dados
 
+**Status: concluída** (commit inicial na `main`; código em `src/carregar_dados.py` e `src/exploracao.py`).
+
 **Objetivo:** entender o formato real dos arquivos e montar o ambiente.
 
 **Fatos verificados nos arquivos enviados:**
-- `Names.txt` e `wpc50.dat` têm **8426 linhas cada**, alinhadas pela posição (linha *i* de um corresponde à linha *i* do outro). `wpc50.dat` tem 50 colunas numéricas, sem valores ausentes, com média ≈ 0 e desvio ≈ 0,4.
+- `Names.txt` e `wpc50.dat` têm **8426 linhas cada**, alinhadas pela posição (linha *i* de um corresponde à linha *i* do outro). `wpc50.dat` tem 50 colunas numéricas, sem valores ausentes, com média global ≈ −0,04 e desvio global ≈ 0,40. **As colunas não estão na mesma escala**: a coluna 0 tem média ≈ −1,80 e a coluna 1 ≈ −0,28, então a normalização precisa ser testada (k-NN e SVM, baseados em distância, são sensíveis; Random Forest não).
 - Os arquivos usam **quebra de linha CRLF** e o `Names.txt` tem **espaços à direita** em cada linha: é preciso fazer `strip()` ao ler.
-- Cada nome está no formato `Genero_especie` (ex.: `Myotis_lucifugus`). Há **4848 gêneros distintos** e nenhum nome repetido. **Não há família, ordem nem qualquer hierarquia taxonômica.**
-- Existem nomes fora do padrão: subespécies (`Rhinolophus_ferrumequinum_korai`), `sp.` (`Uropsilus_sp_1_FT_2014`), `nomen_nudum`, um híbrido de carpas e **um nome sem epíteto**. Tratar o gênero como "primeiro termo antes do `_`" funciona para todos, mas vale conferir esses casos.
-- O arquivo **não está totalmente em ordem alfabética**: as 9 primeiras linhas (*Candida*..., *Cyprinus*...) saem do padrão. Não reordenar nada; usar sempre o número da linha original como índice.
+- Cada nome está no formato `Genero_especie` (ex.: `Myotis_lucifugus`). Há **4847 gêneros distintos** e nenhum nome repetido. **Não há família, ordem nem qualquer hierarquia taxonômica.**
+- Há **389 nomes fora do padrão** (388 tratados como ambíguos; *Crocodylus niloticus* só tem espaço no lugar de `_`): subespécies e nomes com mais de dois termos (387), `sp` (108, ex.: `Uropsilus_sp_1_FT_2014`), híbridos (64) e `nomen_nudum` (3). Dois nomes usam **espaço no lugar de `_`** (`Calosoma sp. BYU_CO241` e `Crocodylus niloticus`), por isso o gênero é extraído separando por `_` **ou espaço**. Não existe nome sem epíteto.
+- As 4 últimas linhas (8422 a 8425) começam com `diploid_`, `triploid_` e `natural_gynogenetic_`: são híbridos de peixes, e o primeiro termo **não é um gênero de verdade**. Esses casos ficam marcados como "gênero suspeito" e **não devem ser rotulados por gênero** na Etapa 1.
+- As 9 primeiras linhas (8 *Candida* e um híbrido de carpas) saem da ordem do resto do arquivo, que segue ordem ASCII (maiúsculas antes de minúsculas), o que causa quebras aparentes no meio. Não reordenar nada; usar sempre o número da linha original como índice (base 0 no código, `BASE_INDICE = 0`).
 - A base cobre **toda a árvore da vida** (fungos, peixes, insetos, plantas, aves etc.), então a maioria dos negativos é fácil. A dificuldade real está nos **mamíferos**.
 
 **Tarefas:**
@@ -70,7 +73,7 @@ morcegos/
 - [ ] Função de carga que remove `\r` e espaços, e verifica 8426 nomes × 8426 vetores
 - [ ] Definir e documentar o índice base usado nas saídas (0 ou 1) e usar o mesmo em todo o projeto
 - [ ] Extrair a coluna `genero` (primeiro termo do nome) e listar os casos fora do padrão
-- [ ] Decidir sobre normalização (os dados já parecem centrados; avaliar se `StandardScaler` ajuda no SVM/k-NN)
+- [ ] Decidir sobre normalização: comparar com e sem `StandardScaler` na Etapa 2 (escalas diferentes entre colunas)
 - [ ] Primeira projeção (PCA/UMAP) para ver a estrutura geral
 
 **Saída:** repositório pronto, função de carga, tabela `indice, nome, genero`.
@@ -78,91 +81,111 @@ morcegos/
 
 ---
 
-### Etapa 1 — Supervisão inicial (sementes) — REVISADA
+### Etapa 1 — Supervisão inicial (semente reduzida e gabarito)
 
-**Problema:** o `Names.txt` traz só o nome científico da espécie. Não há família nem ordem, então não dá para filtrar por "Vespertilionidae" ou "Chiroptera" diretamente. O **gênero**, porém, está embutido no nome (primeiro termo), e é a chave de ligação com fontes taxonômicas externas.
+**Status: implementada** (branch `etapa-1-supervisao`; `src/supervisao.py`, `src/validacao.py`). A lista taxonômica real é o MDD v2.5, acessada em 2026-11-23, e está em `data/external/generos_mamiferos.csv` (1363 gêneros, 27 ordens, 238 gêneros de *Chiroptera*).
 
-**Estratégia: supervisão por gênero, em dois níveis.**
+**Problema original:** o `Names.txt` só traz `Genero_especie`, sem família nem ordem. O gênero é a ponte com a taxonomia externa.
 
-1. **Positivos por gênero conhecido.**
-   - Montar uma lista de gêneros da ordem *Chiroptera* a partir de fonte externa (Mammal Diversity Database, NCBI Taxonomy, ITIS ou GBIF; a ordem tem cerca de 200 gêneros).
-   - Cruzar com a coluna `genero` do `Names.txt`. Só entra como positivo quem casa pelo gênero.
-   - Teste preliminar já feito com uma lista de 60 gêneros: **74 instâncias de 27 gêneros** casaram (por exemplo *Myotis* com 28 espécies, *Rhinolophus* com 10, *Pteropus* com 4, *Artibeus*, *Carollia*, *Desmodus*, *Vampyrum*, *Tadarida*). O arquivo `sementes_positivas_iniciais.csv` traz essa lista. **Ela foi montada de memória e precisa ser conferida na fonte taxonômica pela equipe.**
-   - Ampliar a lista de gêneros é parte do trabalho da Pessoa A: cada gênero novo achado na fonte pode trazer novos positivos.
+**Decisão de método:** se todos os morcegos entrassem rotulados por regra, o classificador não teria nada a descobrir, e o enunciado pede prospecção. Por isso a taxonomia completa é usada como **gabarito** (conferir candidatos, medir métricas e fechar a entrega), e o treino começa com uma **semente reduzida**.
 
-2. **Negativos, com foco em mamíferos.**
-   - Como o restante da base é de outros grupos, negativos aleatórios dão pouca informação. Priorizar **mamíferos não-morcegos** (roedores, primatas, carnívoros, ungulados, e especialmente insetívoros como musaranhos, toupeiras e ouriços), identificados por lista de gêneros de mamíferos da mesma fonte.
-   - Completar com uma amostra aleatória de outros grupos (peixes, aves, insetos, plantas, fungos) para cobrir o resto da árvore.
+**Grupos (por gênero, `random_state=42`):**
 
-**Validação importante (evitar vazamento por gênero):**
-- Espécies do mesmo gênero são quase duplicatas no espaço de características (28 *Myotis*, por exemplo). Validação cruzada comum **infla o desempenho**, porque o modelo vê parentes próximos no treino e no teste.
-- Usar **validação agrupada por gênero** (`GroupKFold` com `genero` como grupo).
-- O **conjunto de teste verificado** deve ser formado por **gêneros inteiros reservados**, nunca usados no treino nem no enriquecimento. Incluir ao menos alguns gêneros de morcegos de famílias diferentes (ex.: um de Pteropodidae, um de Phyllostomidae, um de Vespertilionidae) para medir se o modelo generaliza para gêneros novos.
+| Grupo | Morcegos (gêneros) | Negativos | Papel |
+|---|---|---|---|
+| semente | 13 (9) | 536 (287 mamíferos + 249 negativos prováveis) | único grupo usado no treino da rodada 0 |
+| oculto | 61 (18) | 494 | pool onde medimos a prospecção; tem gabarito, mas não entra no treino |
+| teste | 5 (5): *Anoura*, *Rousettus*, *Hypsugo*, *Lasiurus*, *Nyctalus* | 184 (133 mamíferos + 51 negativos prováveis) | verificado, congelado por SHA256 (início `68bc13a7`) |
 
-**Tarefas:**
-- [ ] Obter e citar a lista de gêneros de *Chiroptera* (fonte e data de acesso)
-- [ ] Cruzar a lista com a coluna `genero` e gerar `positivos.csv` (índice, nome, gênero, fonte)
-- [ ] Obter lista de gêneros de mamíferos para montar os negativos difíceis
-- [ ] Amostrar negativos de outros grupos para completar
-- [ ] Separar e congelar o teste verificado por gêneros inteiros
-- [ ] Registrar nomes ambíguos (subespécies, `sp.`, sinônimos) em uma tabela à parte, sem rotular até resolver
+**Regras já implementadas:** gêneros com 10 ou mais espécies (como *Myotis*) nunca vão para o teste; nomes ambíguos e de gênero suspeito ficam fora do teste; os 135 gêneros do teste ficam **bloqueados** (252 instâncias no `Names.txt`, 107 sem rótulo) e não podem ser candidatos nem entrar no treino; mudar `--fracao-semente` não muda o teste nem o hash.
 
-**Saída:** `positivos.csv`, `negativos.csv`, `teste_verificado.csv`, tabela de fontes.
-**Critério de pronto:** sementes cobrem várias famílias (sabendo-as pela fonte externa, não pelo arquivo); teste separado por gêneros e congelado.
+**Arquivos em `data/seeds/`:** `gabarito.csv`, `semente_reduzida.csv`, `teste_verificado.csv` (+ `.sha256`), `generos_bloqueados.csv`, `positivos.csv`, `negativos.csv`, `treino_inicial.csv`, `casos_ambiguos.csv`. **Treinar só com `semente_reduzida.csv`.**
 
-**Resultado de um teste rápido (para calibrar expectativa):** treinando Random Forest e SVM com os 74 positivos por gênero, o modelo, na validação cruzada simples, atingiu F1 de 0,93 e 0,95 para morcegos, e **apontou 5 candidatos novos de gêneros que não estavam na lista**: *Chalinolobus tuberculatus*, *Brachyphylla cavernarum*, *Lophostoma silvicolum*, *Tonatia saurophila* e *Rhinophylla pumilio* (todos conhecidos como morcegos, mas a equipe deve confirmar na fonte). Isso mostra que o ciclo de enriquecimento funciona. Esse F1 usou validação sem agrupar por gênero, então **está otimista**; o valor honesto vem da validação agrupada. Os falsos positivos mais próximos foram insetívoros como *Hylomys suillus* e *Uropsilus*, confirmando que os negativos difíceis devem ser mamíferos pequenos.
+**Pontos de atenção descobertos nesta etapa:**
+- A semente tem só **13 positivos de 9 gêneros**: as métricas de validação serão ruidosas. Usar validação agrupada repetida e reportar desvio.
+- O **oculto concentra 62% dos positivos em dois gêneros** (*Myotis* com 28 e *Rhinolophus* com 10). Acertar ou errar um deles muda o recall de forma abrupta. Reportar recall **por gênero e por família**, e não só o agregado.
+- Cinco famílias do oculto **não têm representante na semente**: Rhinolophidae, Hipposideridae, Molossidae, Mormoopidae e Mystacinidae. Isso é o ponto difícil da prospecção e deve ser discutido no relatório.
+- O teste tem **só 5 positivos**: acertar 5 de 5 ainda dá um intervalo de confiança de 95% de cerca de 57% a 100% (Wilson). Reportar sempre com intervalo.
+- Os **negativos prováveis** (249 na semente, 51 no teste) são amostras aleatórias de outros grupos e **não foram verificados** taxonomicamente. Conferir uma amostra.
+- As 107 instâncias bloqueadas sem rótulo não têm gabarito: na entrega final recebem a predição do modelo final (são gêneros de negativos prováveis), com conferência manual.
+
+**Tarefas restantes:**
+- [ ] Revisão por outra pessoa: preencher "Quem conferiu" em `docs/fontes_taxonomicas.md` após checar uma amostra (10 gêneros de morcego e 10 de insetívoros contra o site do MDD)
+- [ ] Conferir manualmente os gêneros dos 51 negativos prováveis do teste
+- [ ] Commitar `data/seeds/` (o congelamento só vale para a equipe se estiver no git) e abrir pull request
+- [ ] Sensibilidade (opcional): repetir com `--fracao-semente` maior e comparar a recuperação do oculto
+
+**Saída:** arquivos de `data/seeds/`, `results/relatorio_supervisao.md`.
+**Critério de pronto:** pull request aprovado, "Quem conferiu" preenchido, teste congelado no git.
 
 ---
 
-### Etapa 2 — Escolha e comparação de classificadores
+### Etapa 2 — Comparação de classificadores (k-NN, SVM RBF e Random Forest)
 
-**Objetivo:** escolher o classificador com base em números, não em preferência.
+**Decisão da equipe:** comparar **três classificadores** (k-NN, SVM com kernel RBF e Random Forest), escolher **um** com base nos números e justificar por escrito. Os três têm lógicas diferentes: o k-NN se apoia na proximidade (espécies filogeneticamente próximas ficam próximas no espaço das 50 características), o SVM busca uma fronteira em um espaço transformado pelo kernel, e o Random Forest combina árvores e dá importância às características.
+
+**Objetivo:** escolher o classificador e sua configuração por números, treinando só com a **semente reduzida**, e fundamentar a seção "Escolha do classificador".
+
+**Desenho da avaliação:**
+- **Seleção** por validação agrupada por gênero (`StratifiedGroupKFold`), **repetida com várias sementes** (por exemplo, 10), sobre `semente_reduzida.csv`, usando **as mesmas dobras para os três modelos**.
+- **Diagnóstico** no grupo oculto: recall por gênero e família e falsos positivos entre mamíferos, para o melhor de cada modelo. O oculto **não** é usado para escolher hiperparâmetros nem modelo.
+- O teste congelado não é tocado nesta etapa.
+
+**Configurações a variar:**
+- **k-NN:** `k` pequeno (1, 3, 5, 7), votos uniformes ou por distância, métrica (euclidiana, Manhattan, cosseno). Pontuação: fração ponderada de vizinhos positivos, ou razão entre a distância ao positivo e ao negativo mais próximos (o k-NN não tem `class_weight`).
+- **SVM RBF:** `C` e `gamma` em grade pequena, `class_weight='balanced'`. Usar o valor da função de decisão como pontuação (a calibração de probabilidades com 13 positivos é instável).
+- **Random Forest:** `n_estimators` e `max_depth`, `class_weight='balanced'`. Pontuação: probabilidade prevista; guardar também a importância das características.
+- **Escala:** cada modelo com e sem `StandardScaler`, ajustado dentro de cada dobra. As colunas têm escalas diferentes: k-NN e SVM devem ser sensíveis; Random Forest não deve mudar.
 
 **Tarefas:**
-- [ ] Implementar k-NN, SVM (RBF) e Random Forest com `class_weight='balanced'` quando aplicável
-- [ ] Ajustar hiperparâmetros com validação cruzada estratificada (ex.: `k`, `C`, `gamma`, `n_estimators`)
-- [ ] Comparar por recall (sensibilidade), precisão, F1 e acurácia
-- [ ] Usar validação agrupada por gênero (`GroupKFold`) em todas as comparações
-- [ ] Avaliar também um ensemble (votação) para usar como critério de confiança
-- [ ] Justificar a escolha por escrito (isso entra na seção "Escolha do classificador")
+- [ ] Implementar os três modelos como `Pipeline`, com a mesma interface de pontuação
+- [ ] Métricas: precisão média (área sob a curva precisão-recall), F1 no melhor limiar, recall com precisão ≥ 0,95, além de sensibilidade, precisão e acurácia
+- [ ] Escolher o classificador: melhor precisão média; se a diferença for menor que 1 desvio-padrão (provável com tão poucos positivos), decidir por simplicidade e interpretabilidade e dizer isso no relatório
+- [ ] Definir o **limiar de confiança** do modelo escolhido para o enriquecimento
+- [ ] Diagnóstico no oculto por gênero e família; para o k-NN, listar os vizinhos mais próximos de cada morcego do oculto
+- [ ] Escrever a justificativa da escolha
 
-**Saída:** tabela comparativa de modelos e classificador(es) escolhido(s).
-**Critério de pronto:** escolha justificada com métricas e explicação de como o classificador será aplicado.
+**Saída:** `results/etapa2_comparacao.csv`, figuras (curvas precisão-recall dos três modelos, com e sem escala, recall por família no oculto) e relatório.
+**Critério de pronto:** classificador escolhido e justificado com números e desvio entre repetições, com explicação de como será aplicado.
 
 ---
 
 ### Etapa 3 — Enriquecimento iterativo da base
 
-**Objetivo:** expandir os positivos/negativos em ciclos controlados até estabilizar.
+**Objetivo:** expandir os positivos e negativos em ciclos controlados, medindo contra o gabarito quantos morcegos do oculto são recuperados.
 
 **Tarefas (a cada rodada):**
-- [ ] Treinar com a base atual
-- [ ] Predizer o restante e calcular probabilidades
-- [ ] Selecionar apenas predições de alta confiança (ex.: p > 0,95, ou consenso do ensemble)
-- [ ] **Conferir os nomes** das instâncias candidatas (validação humana via taxonomia) antes de incorporá-las
-- [ ] Pesquisar manualmente as instâncias mais incertas (p ≈ 0,5), como *active learning*
-- [ ] Opcional: complementar com propagação por vizinhança (*Label Spreading*) e balanceamento (SMOTE só no treino)
-- [ ] Salvar rótulos da rodada em `data/rounds/` e registrar: nº de positivos, nº adicionados, nº corrigidos manualmente
-- [ ] Parar quando uma rodada não adicionar novos positivos relevantes, ou quando restarem só casos ambíguos
+- [ ] Treinar com a base atual (rodada 0 = `semente_reduzida.csv`)
+- [ ] Predizer o restante e calcular probabilidades; **excluir os candidatos bloqueados** (gêneros do teste)
+- [ ] Selecionar predições de alta confiança (limiar da Etapa 2)
+- [ ] **Conferir os nomes** das candidatas (validação humana via taxonomia/gabarito) antes de incorporá-las
+- [ ] Pesquisar manualmente as mais incertas (p ≈ 0,5), como *active learning*, em especial para as **famílias sem representante na semente**
+- [ ] Opcional: propagação por vizinhança (*Label Spreading*) e balanceamento (SMOTE só no treino)
+- [ ] Medir com `avaliar_candidatos`: precisão e recall acumulados no oculto, por gênero e por família, e candidatos fora do gabarito
+- [ ] Salvar rótulos em `data/rounds/` e registrar: nº de positivos, adicionados, corrigidos manualmente
+- [ ] Parar quando uma rodada não adicionar positivos relevantes, ou restarem só casos ambíguos
 
-**Saída:** histórico de rodadas (tabela e gráfico da evolução do nº de positivos), base final supervisionada.
-**Critério de pronto:** processo documentado e reprodutível; critério de parada explícito.
+**Pontos de atenção:** candidatos fora do gabarito (gêneros que o MDD não cobre ou nomes antigos) são justamente onde pode haver morcegos escondidos; investigá-los na taxonomia. Gêneros do teste ficam bloqueados.
+
+**Saída:** histórico de rodadas (tabela e gráfico), base final supervisionada.
+**Critério de pronto:** processo reprodutível; critério de parada explícito.
 
 ---
 
 ### Etapa 4 — Modelo final e testes de performance
 
-**Objetivo:** medir o desempenho de forma honesta.
+**Objetivo:** medir o desempenho de forma honesta, sabendo que o teste tem poucos positivos.
 
 **Tarefas:**
 - [ ] Treinar o modelo final com a base enriquecida
-- [ ] Avaliar no **conjunto de teste verificado, formado por gêneros inteiros reservados** (nunca usado no treino): sensibilidade, precisão, acurácia, F1 e matriz de confusão
-- [ ] Reportar também validação cruzada estratificada no conjunto final
-- [ ] Discutir limitações: acurácia sozinha engana com classes desbalanceadas; métricas sobre rótulos gerados pelo próprio modelo ficam infladas
+- [ ] Avaliar no **teste congelado** (5 positivos de 5 gêneros e 184 negativos): sensibilidade, precisão, acurácia, F1 e matriz de confusão, **com intervalos de confiança de 95% (Wilson)**
+- [ ] Complemento mais estável: validação agrupada por gênero (ou *leave-one-genus-out*) sobre **todo o gabarito** (79 positivos), apenas como medida complementar
+- [ ] Reportar a recuperação do oculto por família (resultado principal da prospecção)
+- [ ] Discutir limitações: acurácia sozinha engana com classes desbalanceadas; rótulos gerados pelo próprio modelo inflam métricas; negativos prováveis não verificados
 - [ ] Analisar erros (falsos positivos e falsos negativos) olhando os nomes
 
-**Saída:** tabela de métricas, matriz de confusão, análise de erros.
-**Critério de pronto:** métricas calculadas em dados verificados, com discussão dos limites.
+**Saída:** tabela de métricas com intervalos, matriz de confusão, análise de erros.
+**Critério de pronto:** métricas em dados verificados, com discussão dos limites.
 
 ---
 
@@ -230,7 +253,7 @@ morcegos/
 | Pessoa | Papel | Responsabilidades principais |
 |---|---|---|
 | **Pessoa A** | Dados e supervisão | Etapas 0 e 1 (carga, exploração, lista de gêneros de *Chiroptera* e de mamíferos em fonte externa, sementes por gênero, teste verificado por gêneros); conferência por nomes na Etapa 3; Etapa 5 (arquivos finais) |
-| **Pessoa B** | Modelagem e enriquecimento | Etapas 2 e 3 (comparação de classificadores, loop de self-training, active learning, balanceamento); código em `src/` |
+| **Pessoa B** | Modelagem e enriquecimento | Etapas 2 e 3 (comparação de classificadores, loop de enriquecimento, active learning, balanceamento); código em `src/` |
 | **Pessoa C** | Avaliação, visualização e comunicação | Etapas 4 e 6 (métricas, matriz de confusão, gráficos); coordenação do relatório (Etapa 7) e dos slides (Etapa 8) |
 
 ### Responsabilidade por seção do relatório
@@ -288,7 +311,9 @@ Ajustar às datas reais da disciplina. Exemplo em semanas até a apresentação:
 | Métricas infladas por vazamento | Teste verificado congelado e fora do enriquecimento |
 | Classes muito desbalanceadas | `class_weight`, SMOTE só no treino, foco em recall/precisão/F1 |
 | Nomes ambíguos ou sinônimos taxonômicos | Consultar NCBI Taxonomy; registrar casos duvidosos |
-| Formato dos arquivos (CRLF, espaços à direita, primeiras linhas fora de ordem) | Limpar na carga e nunca reordenar; usar o número da linha original |
+| Formato dos arquivos (CRLF, espaços à direita, dois nomes com espaço no lugar de `_`, 4 nomes com gênero suspeito) | Limpar na carga, extrair o gênero separando por `_` ou espaço, nunca reordenar e usar o número da linha original |
+| Colunas de `wpc50.dat` em escalas diferentes | Testar com e sem normalização na Etapa 2 |
+| Nomes antigos de gêneros que não casam com a lista atual | Tabela de sinônimos e conferência dos gêneros sem correspondência |
 | Equipe de 3 acima do limite do enunciado | Confirmar com o professor logo no início |
 
 ---

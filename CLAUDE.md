@@ -14,6 +14,7 @@ python -m src.exploracao                     # Etapa 0: estatísticas, nomes for
 python -m src.supervisao                     # Etapa 1: sementes + teste verificado (padrão 300 negativos prováveis)
 python -m src.supervisao --n-negativos 500
 python -m src.supervisao --fracao-semente 0.35 --max-especies-teste 9 --min-positivos-teste 5
+python -m src.experimento_etapa2             # Etapa 2: k-NN x SVM RBF x RF (~4 min)
 python scripts/montar_generos_mamiferos.py --mdd data/external/MDD_v2.5.csv --fonte "..." --data-acesso AAAA-MM-DD --names data/raw/Names.txt
 pytest                                       # todos os testes
 pytest tests/test_supervisao.py::nome_do_teste   # um teste
@@ -30,7 +31,17 @@ Pipeline em módulos de `src/`, cada etapa consumindo a saída da anterior:
 3. **`validacao.py`** — `validacao_agrupada()` gera dobras `StratifiedGroupKFold` agrupadas por `genero_atual`. Toda comparação de modelos (Etapa 2+) deve usar esta função. `avaliar_candidatos()` mede precisão/recall acumulados de candidatos no pool oculto.
 4. `scripts/montar_generos_mamiferos.py` — reduz o checklist do MDD (uma linha por espécie; `MDD_v2.5.csv` é ignorado pelo git) a uma linha por gênero, normalizando ordem/família para capitalização (`CHIROPTERA` → `Chiroptera`).
 
-Etapas futuras (classificadores, enriquecimento em `data/rounds/`, modelo final, `classes_finais.csv`/`indices_positivos.txt`) ainda não estão implementadas.
+5. **`modelos.py`** — `gerar_configuracoes(grade)` monta as configurações (k-NN por fração ou razão de distâncias `RazaoDistanciaKNN`, SVM RBF, RF), cada uma sem e com `StandardScaler`, sempre num `Pipeline` (`construir_pipeline`). `pontuar(pipe, X)` é a interface única: `decision_function` se existir, senão `predict_proba[:, 1]`.
+6. **`experimento_etapa2.py`** — Etapa 2: `verificar_sem_vazamento` antes de ajustar; `gerar_dobras` (sementes 42..51) uma vez para todas as configurações; métricas fora da amostra por repetição; melhor de cada modelo por AP; diagnóstico no oculto; grava `results/etapa2_*.csv`, `relatorio_etapa2.md` e figuras. `executar(dir_seeds, dir_resultados, seeds, grade)` aceita caminhos e grade reduzida (usado nos testes).
+
+Etapas futuras (enriquecimento em `data/rounds/`, modelo final, `classes_finais.csv`/`indices_positivos.txt`) ainda não estão implementadas.
+
+### Convenções da modelagem (Etapa 2+)
+
+- Pontuação: **maior = mais provável morcego**, para todo modelo (use `src.modelos.pontuar`).
+- Toda comparação usa as **mesmas dobras** para todos os modelos (`gerar_dobras`); repetições com as sementes 42..51.
+- O grupo `oculto` é só diagnóstico: nunca escolhe hiperparâmetro, modelo ou limiar.
+- Na Etapa 2 o treino é só `semente_reduzida.csv`.
 
 ### Invariantes que não podem ser quebradas
 

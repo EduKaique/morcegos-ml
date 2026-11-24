@@ -127,6 +127,38 @@ Colunas comuns: `indice` (base 0), `nome`, `genero` (como está no `Names.txt`),
   8426 classes.
 - A validação cruzada usa `src.validacao.validacao_agrupada`, agrupada por gênero.
 
+## Como comparar os classificadores (Etapa 2)
+
+Requer as sementes da Etapa 1 em `data/seeds/`. Rode:
+
+```bash
+python -m src.experimento_etapa2   # cerca de 4 minutos (8 núcleos)
+```
+
+Compara k-NN, SVM RBF e Random Forest (grades em `src/modelos.py`, cada um com
+e sem `StandardScaler` dentro de um `Pipeline`):
+
+- treina **só** com `semente_reduzida.csv`; o script para se a semente tiver
+  algum índice do teste, dos gêneros bloqueados ou do oculto;
+- validação agrupada por gênero (`validacao_agrupada`), 5 dobras, repetida com
+  as sementes 42..51, com **as mesmas dobras para todas as configurações**;
+- pontuação única: maior = mais provável morcego (`src.modelos.pontuar`);
+- o grupo `oculto` é só diagnóstico (recall por família/gênero, falsos
+  positivos, vizinhos do k-NN) e **não** escolhe hiperparâmetro nem modelo.
+
+Saídas em `results/`:
+
+| Arquivo | Conteúdo |
+|---|---|
+| `etapa2_comparacao.csv` | todas as configurações: AP, F1 máximo, recall com precisão ≥ 0,95, sensibilidade/precisão/acurácia no limiar, limiares (média ± desvio entre repetições) |
+| `etapa2_oculto_por_familia.csv` | recall no oculto por família e por gênero (`nivel`), para o melhor de cada modelo |
+| `etapa2_oculto_vizinhos.csv` | 3 vizinhos mais próximos na semente de cada morcego do oculto (k-NN) |
+| `etapa2_importancias_rf.csv` | importância das características da melhor Random Forest |
+| `relatorio_etapa2.md` | tabela comparativa, limiares sugeridos, regra de desempate sugerida, diagnóstico do oculto e limites |
+| `figuras/etapa2_*.png` | curvas precisão-recall, boxplot da AP, recall por família no oculto |
+
+O relatório sugere o modelo e o limiar, mas a escolha final é da equipe.
+
 ## Estrutura de pastas
 
 ```
@@ -145,6 +177,8 @@ src/
   exploracao.py       exploração da Etapa 0
   supervisao.py       supervisão por gênero: gabarito, semente reduzida, teste e bloqueio
   validacao.py        validação cruzada agrupada por gênero e métricas de prospecção
+  modelos.py          pipelines e grades de k-NN, SVM RBF e Random Forest (Etapa 2)
+  experimento_etapa2.py  comparação dos classificadores e diagnóstico no oculto (Etapa 2)
 tests/        testes (pytest)
   fixtures/   taxonomia fictícia, só para testes
 ```
