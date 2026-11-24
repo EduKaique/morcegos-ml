@@ -19,6 +19,8 @@ python -m src.enriquecimento --auto --ate-convergir   # Etapa 3: simulação só
 python -m src.enriquecimento --rodada 1      # Etapa 3: rodada manual (gera revisao_manual.csv)
 python -m src.avaliacao_final                # Etapa 4: só preparação (não lê o teste)
 python -m src.avaliacao_final --rodada-final 3 --avaliar-teste   # Etapa 4: avaliação no teste (registra uso)
+python scripts/gerar_classes_finais.py --rodada-final 3 --base-lista 1   # Etapa 5: classes_finais.csv + indices_positivos.txt
+python -m src.relatorio_etapa5 --rodada-final 3   # Etapa 5: verificações, relatório e figuras (não avalia o teste)
 python scripts/montar_generos_mamiferos.py --mdd data/external/MDD_v2.5.csv --fonte "..." --data-acesso AAAA-MM-DD --names data/raw/Names.txt
 pytest                                       # todos os testes
 pytest tests/test_supervisao.py::nome_do_teste   # um teste
@@ -43,7 +45,8 @@ Pipeline em módulos de `src/`, cada etapa consumindo a saída da anterior:
 
 9. **`avaliacao_final.py`** — Etapa 4: `carregar_base_final` (rodada manual convergida) → `verificar_base` (vazamento) → modelo final. Com `avaliar_teste=True`: `ler_teste_verificado` (única porta de leitura do teste, confere SHA256), `registrar_uso_teste`, métricas com `wilson` (proporções) e `bootstrap_f1_ap`, `cv_conjunto_final` e `logo_generos` no conjunto base ∪ teste, `tabela_erros`, `pontuacoes_todas` (8426 linhas para a Etapa 5); grava `results/etapa4_*` e `relatorio_etapa4.md`.
 
-Etapas futuras (`classes_finais.csv`/`indices_positivos.txt`, Etapa 5) ainda não estão implementadas.
+10. **`scripts/gerar_classes_finais.py`** — Etapa 5: classe de cada uma das 8426 instâncias por prioridade gabarito → teste verificado → base final → modelo final (pontuação ≥ limiar); grava `results/classes_finais.csv` e `results/indices_positivos.txt`.
+11. **`relatorio_etapa5.py`** — Etapa 5: `verificar_consistencia` (para com `ErroConsistencia`), `montar_morcegos` (`origem_entrada` = `semente`, `rodada_N` ou `teste_bloqueado`), `analisar_sem_rotulo` (desempate só de ordenação pela razão de distâncias), `segunda_opiniao` (melhor SVM e RF da Etapa 2, não altera rótulo), `carregar_umap_cache` (nunca calcula UMAP); grava `results/etapa5_morcegos.csv`, `relatorio_etapa5.md` e `figuras/etapa5_*.png`.
 
 ### Convenções da modelagem (Etapa 2+)
 
@@ -54,6 +57,7 @@ Etapas futuras (`classes_finais.csv`/`indices_positivos.txt`, Etapa 5) ainda nã
 - Etapa 3: a base só cresce com origem verificada (`gabarito` ou `humano`), nunca com a predição sozinha. `revisao_manual.csv` aceita `decisao_humana` = `1`, `0`, `duvida` ou vazio (pendente); `duvida` sai do pool nas rodadas seguintes. Não refaça uma rodada com decisões preenchidas (o script recusa sem `--sobrescrever`).
 - As rodadas manuais (`data/rounds/rodada_NN/`) e a simulação (`data/rounds/auto/`) ficam separadas; o `--auto` apaga e refaz `data/rounds/auto/`.
 - Etapa 4: o teste congelado só é lido com `--avaliar-teste`, sempre por `ler_teste_verificado` (SHA256 conferido); cada uso vira uma linha em `results/etapa4_log_uso_teste.csv`. Nunca ajuste limiar, k ou qualquer hiperparâmetro olhando o teste — repetir a avaliação enquanto se altera o modelo invalida o teste. O modelo final exige uma rodada manual convergida.
+- Etapa 5: `indices_positivos.txt` usa **base 1** (número de ordem pedido no enunciado; `indice_base1 = indice_base0 + 1`). A Etapa 5 **não reavalia o teste**: sem métricas no teste e sem gravar em `etapa4_log_uso_teste.csv` (ler os rótulos por `ler_teste_verificado` para compor as classes é permitido). Nenhum rótulo muda no relatório. Não calcule UMAP novo (MemoryError na máquina da equipe): use PCA ou o cache conferido.
 
 ### Invariantes que não podem ser quebradas
 

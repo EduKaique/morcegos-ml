@@ -240,6 +240,35 @@ Saídas em `results/`: `etapa4_metricas_teste.csv`,
 `etapa4_logo_generos.csv`, `etapa4_erros.csv`, `etapa4_pontuacoes_todas.csv`,
 `etapa4_log_uso_teste.csv`, `relatorio_etapa4.md` e as figuras `etapa4_*.png`.
 
+## Classes finais e relatório da entrega (Etapa 5)
+
+```bash
+python scripts/gerar_classes_finais.py --rodada-final 3 --base-lista 1
+python -m src.relatorio_etapa5 --rodada-final 3
+```
+
+O script gera `results/classes_finais.csv` (8426 linhas: `indice_base0`,
+`indice_base1`, `nome`, `classe`, `fonte_rotulo`, `pontuacao`) e
+`results/indices_positivos.txt`. A classe vem, nesta prioridade, do gabarito
+taxonômico, do teste verificado, da base final e, só onde não há rótulo
+verificado, do modelo final (pontuação ≥ limiar).
+
+**A lista de positivos usa base 1**: o enunciado pede os números de ordem dos
+morcegos, e o primeiro organismo de `Names.txt` é o número 1
+(`indice_base1 = indice_base0 + 1`).
+
+`src.relatorio_etapa5` não altera nenhum rótulo. Ele confere a consistência dos
+dois arquivos (8426 índices únicos, classes 0/1, lista igual aos positivos na
+base declarada, positivos vindos do gabarito, nenhum índice do teste ou de
+gênero bloqueado nos candidatos) e para com erro se algo falhar. Depois grava
+`results/etapa5_morcegos.csv` (morcegos com gênero, família e
+`origem_entrada`), `results/relatorio_etapa5.md` e as figuras `etapa5_*.png`
+(mapa PCA; o UMAP só é desenhado a partir de `results/umap_cache.npy` com
+`umap_cache.sha256` conferido, nunca recalculado). Inclui uma segunda opinião
+com o melhor SVM RBF e o melhor Random Forest da Etapa 2, só como sinal
+complementar. **A Etapa 5 não reavalia o teste**: não calcula métricas nele nem
+grava em `results/etapa4_log_uso_teste.csv`.
+
 ## Estrutura de pastas
 
 ```
@@ -263,6 +292,8 @@ src/
   config_modelo.py    classificador escolhido e limiar padrão (Etapa 3+)
   enriquecimento.py   rodadas de enriquecimento, revisão manual e simulação (Etapa 3)
   avaliacao_final.py  modelo final, avaliação no teste congelado e análise de erros (Etapa 4)
+  relatorio_etapa5.py verificações, relatório e figuras das classes finais (Etapa 5)
+scripts/      montagem da lista de gêneros e geração das classes finais
 tests/        testes (pytest)
   fixtures/   taxonomia fictícia, só para testes
 ```
