@@ -37,7 +37,7 @@ Sempre a partir da raiz do repositório, com o `.venv` ativo:
 
 ```bash
 python -m src.exploracao   # estatísticas, nomes fora do padrão e figuras
-pytest                     # testes de carga e alinhamento
+pytest                     # testes (usam a lista real; o fixture só se ela estiver vazia)
 ```
 
 A exploração grava `results/estatisticas_descritivas.csv`,
@@ -45,22 +45,108 @@ A exploração grava `results/estatisticas_descritivas.csv`,
 `hist_especies_por_genero.png` em `results/figuras/`. As figuras não são
 versionadas, porque o script as gera de novo.
 
+## Como gerar a supervisão (Etapa 1)
+
+1. Coloque a lista de gêneros de mamíferos em
+   `data/external/generos_mamiferos.csv` e, se houver, os sinônimos em
+   `data/external/sinonimos_generos.csv` (formatos em
+   [`data/external/README.md`](data/external/README.md)). Registre as fontes em
+   [`docs/fontes_taxonomicas.md`](docs/fontes_taxonomicas.md).
+2. Rode:
+
+   ```bash
+   python -m src.supervisao                        # padrões abaixo
+   python -m src.supervisao --n-negativos 500
+   python -m src.supervisao --fracao-semente 0.5   # semente maior (não muda o teste)
+   ```
+
+   | Opção | Padrão | Efeito |
+   |---|---|---|
+   | `--n-negativos` | 300 | tamanho da amostra de negativos prováveis |
+   | `--fracao-semente` | 0.35 | fração dos gêneros fora do teste que entram na semente |
+   | `--max-especies-teste` | 9 | gêneros com mais instâncias que isso (ex.: *Myotis*) nunca vão para o teste |
+   | `--min-positivos-teste` | 5 | completa o teste com gêneros de morcego até esse número de positivos |
+   | `--sobrescrever-teste` | — | permite substituir o teste congelado (só com aval da equipe) |
+
+   Sem a lista (só o cabeçalho), o script para com uma mensagem e não grava nada.
+3. Leia `results/relatorio_supervisao.md` (inclusive a seção **Avisos**) e
+   revise `data/seeds/casos_ambiguos.csv`.
+
+### Modo semente reduzida: gabarito, semente, oculto e teste
+
+Se todos os mamíferos rotulados pela taxonomia entrassem no treino, o
+enriquecimento da Etapa 3 não teria nada para descobrir. Por isso a taxonomia
+completa é o **gabarito**, e cada gênero rotulado cai em um de três grupos
+(por gênero inteiro, nunca dividido):
+
+| Grupo | O que é | Pode treinar? |
+|---|---|---|
+| `semente` | ~35% dos gêneros fora do teste (morcegos estratificados por família, outros mamíferos por ordem, sempre com Eulipotyphla), mais os negativos prováveis fora do teste | sim, é a rodada 0 |
+| `oculto` | o resto dos gêneros com gabarito | **não** na rodada 0; só entram se forem descobertos pelo enriquecimento |
+| `teste` | gêneros inteiros reservados ao teste verificado | **nunca** (nem no enriquecimento) |
+
+- O **gabarito** (`gabarito.csv`) serve para conferir candidatos e medir
+  métricas. **Nunca use como treino fora do grupo `semente`.**
+- `src.validacao.avaliar_candidatos(candidatos_idx, gabarito)` mede a
+  prospecção: precisão e recall acumulados dos candidatos adicionados no pool
+  oculto, e quantos eram morcegos reais. Candidato do grupo `teste` gera erro.
+- `src.supervisao.instancias_bloqueadas(df)` devolve os índices de **todas** as
+  instâncias dos gêneros do teste no `Names.txt`, inclusive as sem rótulo. A
+  Etapa 3 deve excluí-las dos candidatos e do treino; na entrega final elas
+  recebem o rótulo do gabarito.
+- Mudar `--fracao-semente` não altera o teste (o sorteio usa outro gerador).
+
+Arquivos gerados em `data/seeds/`:
+
+| Arquivo | Conteúdo |
+|---|---|
+| `gabarito.csv` | todas as instâncias com rótulo taxonômico: `indice, nome, genero, genero_atual, ordem, familia, rotulo_gabarito, grupo` |
+| `semente_reduzida.csv` | só o que é conhecido na rodada 0 (grupo `semente`), com `rotulo` e `origem` |
+| `treino_inicial.csv` | igual a `semente_reduzida.csv` |
+| `teste_verificado.csv` | gêneros inteiros reservados, sem nomes ambíguos |
+| `teste_verificado.sha256` | hash que congela o teste |
+| `generos_bloqueados.csv` | todos os gêneros do teste, com nº de instâncias no Names.txt e no teste |
+| `positivos.csv` | todos os morcegos rotulados pelo gênero, com a coluna `grupo` |
+| `negativos.csv` | mamíferos não-morcegos e negativos prováveis, com a coluna `grupo` |
+| `casos_ambiguos.csv` | nomes ambíguos e suspeitos, a decisão tomada e uma coluna `observacao` para a equipe |
+
+Colunas comuns: `indice` (base 0), `nome`, `genero` (como está no `Names.txt`),
+`genero_atual` (após sinônimos; é o grupo usado na validação), `ordem`,
+`familia`, `rotulo` (1 morcego, 0 outro) e `origem`.
+
+- **`positivos.csv`/`negativos.csv` incluem o oculto e o teste.** Para treinar,
+  use `semente_reduzida.csv` (ou filtre `grupo == "semente"`).
+- **Teste congelado:** se o teste já existe e uma nova execução geraria outro
+  conteúdo, o script para. Só com o aval da equipe use `--sobrescrever-teste`,
+  e registre a mudança em `docs/fontes_taxonomicas.md`.
+- **Negativos prováveis não são verificados:** são instâncias de gêneros fora da
+  lista de mamíferos; um mamífero ausente da lista pode estar entre eles. Eles
+  não fazem parte do gabarito.
+- **Rótulos do teste verificado na entrega final:** como foram verificados por
+  taxonomia, esses rótulos também são usados diretamente no arquivo final das
+  8426 classes.
+- A validação cruzada usa `src.validacao.validacao_agrupada`, agrupada por gênero.
+
 ## Estrutura de pastas
 
 ```
 data/
   raw/        Names.txt e wpc50.dat originais (somente leitura)
-  seeds/      sementes rotuladas (Etapa 1)
+  external/   listas taxonômicas fornecidas pela equipe (Etapa 1)
+  seeds/      sementes rotuladas e teste verificado (Etapa 1)
   rounds/     rótulos de cada rodada de enriquecimento (Etapa 3)
-docs/         plano de execução e enunciado
+docs/         plano de execução, enunciado e fontes taxonômicas
 notebooks/    notebooks de apoio
 relatorio/    relatório final
-results/      tabelas geradas
+results/      tabelas e relatórios gerados
   figuras/    figuras geradas
 src/
   carregar_dados.py   carga e validação dos dados
   exploracao.py       exploração da Etapa 0
+  supervisao.py       supervisão por gênero: gabarito, semente reduzida, teste e bloqueio
+  validacao.py        validação cruzada agrupada por gênero e métricas de prospecção
 tests/        testes (pytest)
+  fixtures/   taxonomia fictícia, só para testes
 ```
 
 ## Convenção de índice
