@@ -15,6 +15,8 @@ python -m src.supervisao                     # Etapa 1: sementes + teste verific
 python -m src.supervisao --n-negativos 500
 python -m src.supervisao --fracao-semente 0.35 --max-especies-teste 9 --min-positivos-teste 5
 python -m src.experimento_etapa2             # Etapa 2: k-NN x SVM RBF x RF (~4 min)
+python -m src.enriquecimento --auto --ate-convergir   # Etapa 3: simulação só com gabarito (data/rounds/auto/)
+python -m src.enriquecimento --rodada 1      # Etapa 3: rodada manual (gera revisao_manual.csv)
 python scripts/montar_generos_mamiferos.py --mdd data/external/MDD_v2.5.csv --fonte "..." --data-acesso AAAA-MM-DD --names data/raw/Names.txt
 pytest                                       # todos os testes
 pytest tests/test_supervisao.py::nome_do_teste   # um teste
@@ -34,7 +36,10 @@ Pipeline em módulos de `src/`, cada etapa consumindo a saída da anterior:
 5. **`modelos.py`** — `gerar_configuracoes(grade)` monta as configurações (k-NN por fração ou razão de distâncias `RazaoDistanciaKNN`, SVM RBF, RF), cada uma sem e com `StandardScaler`, sempre num `Pipeline` (`construir_pipeline`). `pontuar(pipe, X)` é a interface única: `decision_function` se existir, senão `predict_proba[:, 1]`.
 6. **`experimento_etapa2.py`** — Etapa 2: `verificar_sem_vazamento` antes de ajustar; `gerar_dobras` (sementes 42..51) uma vez para todas as configurações; métricas fora da amostra por repetição; melhor de cada modelo por AP; diagnóstico no oculto; grava `results/etapa2_*.csv`, `relatorio_etapa2.md` e figuras. `executar(dir_seeds, dir_resultados, seeds, grade)` aceita caminhos e grade reduzida (usado nos testes).
 
-Etapas futuras (enriquecimento em `data/rounds/`, modelo final, `classes_finais.csv`/`indices_positivos.txt`) ainda não estão implementadas.
+7. **`config_modelo.py`** — classificador fixo escolhido pela equipe na Etapa 2 (k-NN `knn_frac`, k=3, distância, manhattan, sem escala; `LIMIAR_PADRAO = 0.6728`). Use `construir_modelo()` em vez de repetir os parâmetros.
+8. **`enriquecimento.py`** — Etapa 3: `executar_rodada(n, dir_modo, ctx, modo)` lê a base da rodada anterior (+ decisões humanas de `revisao_manual.csv`), treina, seleciona candidatos (alta confiança ≥ limiar; incertos com 0 < pontuação < limiar), verifica pelo gabarito (só grupo `oculto`) e grava `data/rounds/rodada_NN/` (`base.csv`, `candidatos.csv`, `revisao_manual.csv`, `metricas.json`). `executar_auto` simula em `data/rounds/auto/` (recomeça do zero). `gerar_saidas` regera `results/etapa3_historico.csv`, `relatorio_etapa3.md` e figuras a partir de todas as rodadas gravadas.
+
+Etapas futuras (modelo final, avaliação no teste, `classes_finais.csv`/`indices_positivos.txt`) ainda não estão implementadas.
 
 ### Convenções da modelagem (Etapa 2+)
 
@@ -42,6 +47,8 @@ Etapas futuras (enriquecimento em `data/rounds/`, modelo final, `classes_finais.
 - Toda comparação usa as **mesmas dobras** para todos os modelos (`gerar_dobras`); repetições com as sementes 42..51.
 - O grupo `oculto` é só diagnóstico: nunca escolhe hiperparâmetro, modelo ou limiar.
 - Na Etapa 2 o treino é só `semente_reduzida.csv`.
+- Etapa 3: a base só cresce com origem verificada (`gabarito` ou `humano`), nunca com a predição sozinha. `revisao_manual.csv` aceita `decisao_humana` = `1`, `0`, `duvida` ou vazio (pendente); `duvida` sai do pool nas rodadas seguintes. Não refaça uma rodada com decisões preenchidas (o script recusa sem `--sobrescrever`).
+- As rodadas manuais (`data/rounds/rodada_NN/`) e a simulação (`data/rounds/auto/`) ficam separadas; o `--auto` apaga e refaz `data/rounds/auto/`.
 
 ### Invariantes que não podem ser quebradas
 

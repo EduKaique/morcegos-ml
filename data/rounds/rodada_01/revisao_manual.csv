@@ -1,0 +1,4 @@
+indice,nome,genero,pontuacao,tipo,viz1_nome,viz1_classe,viz2_nome,viz2_classe,viz3_nome,viz3_classe,decisao_humana,observacao
+4412,Mammuthus_primigenius,Mammuthus,0.330022,incerto,Choloepus_didactylus,0,Desmodus_rotundus,1,Ochotona_princeps,0,0,
+8274,Vicugna_pacos,Vicugna,0.329978,incerto,Urotrichus_talpoides,0,Saccopteryx_leptura,1,Uropsilus_sp_4_FT_2015,0,0,
+4411,Mammuthus_columbi,Mammuthus,0.322713,incerto,Ochotona_princeps,0,Choloepus_didactylus,0,Desmodus_rotundus,1,0,

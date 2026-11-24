@@ -1,0 +1,170 @@
+{
+  "alta_do_oculto": 0,
+  "alta_sem_rotulo": 0,
+  "base_neg_entrada": 550,
+  "base_neg_saida": 550,
+  "base_pos_entrada": 74,
+  "base_pos_saida": 74,
+  "candidatos_alta": 0,
+  "candidatos_incertos": 0,
+  "convergido": true,
+  "duvidas_novas": 0,
+  "excluidos_duvida": [],
+  "falsos_positivos_alta": 0,
+  "humanos_neg_incorporados": 1,
+  "humanos_pos_incorporados": 0,
+  "incertos_do_oculto": 0,
+  "incertos_sem_rotulo": 0,
+  "limiar": 0.6728,
+  "modelo": "knn_frac",
+  "modo": "manual",
+  "morcegos_oculto_encontrados_acum": 61,
+  "morcegos_oculto_total": 61,
+  "motivo": "nenhum positivo novo confirmado e nenhuma pendência de revisão",
+  "n_pool": 7550,
+  "negativos_dificeis": 0,
+  "pendentes_fora_do_csv": 0,
+  "pendentes_revisao_csv": 0,
+  "pendentes_rodada_anterior": 0,
+  "pendentes_total": 0,
+  "positivos_novos": 0,
+  "positivos_novos_gabarito": 0,
+  "precisao_alta_verificada": null,
+  "precisao_verificados_acum": 0.8591549295774648,
+  "recall_oculto_acum": 1.0,
+  "recall_por_familia": {
+    "Hipposideridae": {
+      "encontrados": 1,
+      "n": 1,
+      "na_semente": false
+    },
+    "Molossidae": {
+      "encontrados": 2,
+      "n": 2,
+      "na_semente": false
+    },
+    "Mormoopidae": {
+      "encontrados": 3,
+      "n": 3,
+      "na_semente": false
+    },
+    "Mystacinidae": {
+      "encontrados": 1,
+      "n": 1,
+      "na_semente": false
+    },
+    "Phyllostomidae": {
+      "encontrados": 7,
+      "n": 7,
+      "na_semente": true
+    },
+    "Pteropodidae": {
+      "encontrados": 2,
+      "n": 2,
+      "na_semente": true
+    },
+    "Rhinolophidae": {
+      "encontrados": 10,
+      "n": 10,
+      "na_semente": false
+    },
+    "Vespertilionidae": {
+      "encontrados": 35,
+      "n": 35,
+      "na_semente": true
+    }
+  },
+  "recall_por_genero": {
+    "Artibeus": {
+      "encontrados": 2,
+      "familia": "Phyllostomidae",
+      "n": 2
+    },
+    "Brachyphylla": {
+      "encontrados": 1,
+      "familia": "Phyllostomidae",
+      "n": 1
+    },
+    "Cynopterus": {
+      "encontrados": 1,
+      "familia": "Pteropodidae",
+      "n": 1
+    },
+    "Epomophorus": {
+      "encontrados": 1,
+      "familia": "Pteropodidae",
+      "n": 1
+    },
+    "Eptesicus": {
+      "encontrados": 1,
+      "familia": "Vespertilionidae",
+      "n": 1
+    },
+    "Hipposideros": {
+      "encontrados": 1,
+      "familia": "Hipposideridae",
+      "n": 1
+    },
+    "Lophostoma": {
+      "encontrados": 1,
+      "familia": "Phyllostomidae",
+      "n": 1
+    },
+    "Micronycteris": {
+      "encontrados": 1,
+      "familia": "Phyllostomidae",
+      "n": 1
+    },
+    "Murina": {
+      "encontrados": 2,
+      "familia": "Vespertilionidae",
+      "n": 2
+    },
+    "Myotis": {
+      "encontrados": 28,
+      "familia": "Vespertilionidae",
+      "n": 28
+    },
+    "Mystacina": {
+      "encontrados": 1,
+      "familia": "Mystacinidae",
+      "n": 1
+    },
+    "Pipistrellus": {
+      "encontrados": 2,
+      "familia": "Vespertilionidae",
+      "n": 2
+    },
+    "Plecotus": {
+      "encontrados": 2,
+      "familia": "Vespertilionidae",
+      "n": 2
+    },
+    "Pteronotus": {
+      "encontrados": 3,
+      "familia": "Mormoopidae",
+      "n": 3
+    },
+    "Rhinolophus": {
+      "encontrados": 10,
+      "familia": "Rhinolophidae",
+      "n": 10
+    },
+    "Sturnira": {
+      "encontrados": 1,
+      "familia": "Phyllostomidae",
+      "n": 1
+    },
+    "Tadarida": {
+      "encontrados": 2,
+      "familia": "Molossidae",
+      "n": 2
+    },
+    "Vampyrum": {
+      "encontrados": 1,
+      "familia": "Phyllostomidae",
+      "n": 1
+    }
+  },
+  "rodada": 3
+}

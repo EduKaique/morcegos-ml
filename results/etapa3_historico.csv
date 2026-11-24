@@ -1,0 +1,7 @@
+alta_do_oculto,alta_sem_rotulo,base_neg_entrada,base_neg_saida,base_pos_entrada,base_pos_saida,candidatos_alta,candidatos_incertos,convergido,duvidas_novas,falsos_positivos_alta,humanos_neg_incorporados,humanos_pos_incorporados,incertos_do_oculto,incertos_sem_rotulo,limiar,modelo,modo,morcegos_oculto_encontrados_acum,morcegos_oculto_total,motivo,n_pool,negativos_dificeis,pendentes_fora_do_csv,pendentes_revisao_csv,pendentes_rodada_anterior,pendentes_total,positivos_novos,positivos_novos_gabarito,precisao_alta_verificada,precisao_verificados_acum,recall_oculto_acum,rodada
+56,0,536,541,13,73,56,12,False,0,0,0,0,9,3,0.6728,knn_frac,auto,60,61,,7625,5,0,3,0,3,60,60,1.0,0.9230769230769231,0.9836065573770492,1
+1,0,541,546,73,74,1,8,False,0,0,0,0,5,3,0.6728,knn_frac,auto,61,61,,7560,5,0,3,0,3,1,1,1.0,0.8591549295774648,1.0,2
+0,0,546,546,74,74,0,3,True,0,0,0,0,0,3,0.6728,knn_frac,auto,61,61,nenhum positivo novo confirmado; 3 candidato(s) sem rótulo ficaram pendentes (não resolvíveis no modo automático),7554,0,0,3,0,3,0,0,,0.8591549295774648,1.0,3
+56,0,536,541,13,73,56,12,False,0,0,0,0,9,3,0.6728,knn_frac,manual,60,61,,7625,5,0,3,0,3,60,60,1.0,0.9230769230769231,0.9836065573770492,1
+1,0,544,549,73,74,1,6,False,0,0,3,0,5,1,0.6728,knn_frac,manual,61,61,,7557,5,0,1,0,1,1,1,1.0,0.8591549295774648,1.0,2
+0,0,550,550,74,74,0,0,True,0,0,1,0,0,0,0.6728,knn_frac,manual,61,61,nenhum positivo novo confirmado e nenhuma pendência de revisão,7550,0,0,0,0,0,0,0,,0.8591549295774648,1.0,3

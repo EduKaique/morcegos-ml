@@ -1,0 +1,8 @@
+indice,nome,genero,pontuacao,tipo,grupo_gabarito,rotulo_gabarito,verificacao
+4912,Mystacina_tuberculata,Mystacina,1.0,alta_confianca,oculto,1,gabarito
+4747,Mogera_robusta,Mogera,0.334732,incerto,oculto,0,gabarito
+8150,Typhlomys_cinereus,Typhlomys,0.332538,incerto,oculto,0,gabarito
+2005,Crocidura_russula,Crocidura,0.33068,incerto,oculto,0,gabarito
+3311,Helicosporidium_sp_ex_Simulium_jonesi,Helicosporidium,0.329196,incerto,,,revisao_manual
+4418,Manis_gigantea,Manis,0.323901,incerto,oculto,0,gabarito
+7547,Suncus_murinus,Suncus,0.31231,incerto,oculto,0,gabarito
