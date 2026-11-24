@@ -159,6 +159,51 @@ Saídas em `results/`:
 
 O relatório sugere o modelo e o limiar, mas a escolha final é da equipe.
 
+## Enriquecimento iterativo (Etapa 3)
+
+O classificador está fixo em `src/config_modelo.py` (decisão da equipe a partir
+de `results/relatorio_etapa2.md`): k-NN `knn_frac`, k=3, votos por distância,
+manhattan, sem escala, limiar 0.6728.
+
+```bash
+python -m src.enriquecimento --auto --ate-convergir   # simulação (~45 s), em data/rounds/auto/
+python -m src.enriquecimento --rodada 1               # rodada manual, em data/rounds/rodada_01/
+python -m src.enriquecimento --rodada 2               # incorpora as decisões da rodada 1
+```
+
+| Opção | Padrão | Efeito |
+|---|---|---|
+| `--limiar` | 0.6728 | pontuação mínima dos candidatos de alta confiança |
+| `--max-incertos` | 30 | máximo de incertos (0 < pontuação < limiar, mais próximos do limiar) |
+| `--max-revisao` | 100 | máximo de candidatos sem rótulo em `revisao_manual.csv` |
+| `--max-rodadas` | 10 | limite do modo automático |
+| `--sobrescrever` | — | permite refazer uma rodada com decisões preenchidas ou com rodadas posteriores |
+
+Cada rodada treina na base atual (rodada 0 = `semente_reduzida.csv`), pontua
+todas as instâncias fora da base e fora dos gêneros bloqueados e verifica os
+candidatos:
+
+- **do grupo `oculto`:** verificação automática pelo gabarito; entram na base
+  (morcego confirmado ou negativo difícil);
+- **sem rótulo:** vão para `revisao_manual.csv`, com os 3 vizinhos mais
+  próximos na base. Preencha `decisao_humana` com `1` (morcego), `0` (não é
+  morcego) ou `duvida` (fica fora), e use `observacao` para a fonte consultada.
+  A decisão só entra na base quando a rodada seguinte é executada; linhas
+  vazias continuam pendentes. Valor inválido para a rodada com erro.
+
+A base **só cresce com rótulos verificados** (`origem` = `gabarito` ou
+`humano`). Instâncias do teste e dos gêneros bloqueados são conferidas antes e
+depois de cada rodada. Converge quando uma rodada não confirma positivo novo e
+não há pendências (no modo automático as pendências sem rótulo não podem ser
+resolvidas e ficam só registradas).
+
+Arquivos em `data/rounds/rodada_NN/` (ou `data/rounds/auto/rodada_NN/`):
+`base.csv` (`indice, rotulo, origem, rodada`), `candidatos.csv`,
+`revisao_manual.csv` e `metricas.json`. Saídas em `results/`:
+`etapa3_historico.csv`, `relatorio_etapa3.md` e as figuras
+`etapa3_positivos_por_rodada.png`, `etapa3_recall_familia_por_rodada.png` e
+`etapa3_umap.png`.
+
 ## Estrutura de pastas
 
 ```
@@ -179,6 +224,8 @@ src/
   validacao.py        validação cruzada agrupada por gênero e métricas de prospecção
   modelos.py          pipelines e grades de k-NN, SVM RBF e Random Forest (Etapa 2)
   experimento_etapa2.py  comparação dos classificadores e diagnóstico no oculto (Etapa 2)
+  config_modelo.py    classificador escolhido e limiar padrão (Etapa 3+)
+  enriquecimento.py   rodadas de enriquecimento, revisão manual e simulação (Etapa 3)
 tests/        testes (pytest)
   fixtures/   taxonomia fictícia, só para testes
 ```
