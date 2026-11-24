@@ -7,7 +7,7 @@ de gerar `data/seeds/` e atualizar a cada mudança em `data/external/`.
 
 | Fonte | Versão | URL | Data de acesso | Quem baixou | Quem conferiu | Arquivo gerado |
 |---|---|---|---|---|---|---|
-| | | | AAAA-MM-DD | | | `data/external/generos_mamiferos.csv` |
+| Mammal Diversity Database | v2.5 | https://www.mammaldiversity.org/ | 2026-11-23 | Eduardo Kaique Alberico | | `data/external/generos_mamiferos.csv` |
 | | | | AAAA-MM-DD | | | `data/external/sinonimos_generos.csv` |
 
 ## Critérios de inclusão

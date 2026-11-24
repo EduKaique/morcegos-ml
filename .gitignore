@@ -7,3 +7,5 @@ __pycache__/
 
 # Figuras regeneráveis (python -m src.exploracao)
 results/figuras/*.png
+
+data/external/MDD_v2.5.csv
