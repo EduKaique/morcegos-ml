@@ -204,6 +204,42 @@ Arquivos em `data/rounds/rodada_NN/` (ou `data/rounds/auto/rodada_NN/`):
 `etapa3_positivos_por_rodada.png`, `etapa3_recall_familia_por_rodada.png` e
 `etapa3_umap.png`.
 
+## Modelo final e avaliação (Etapa 4)
+
+O modelo final é o classificador de `src/config_modelo.py`, treinado com a base
+da última rodada manual **convergida** (`data/rounds/rodada_NN/base.csv`). O
+limiar (0.6728) e os hiperparâmetros são fixos; nada é ajustado olhando o teste.
+
+```bash
+python -m src.avaliacao_final                                   # só preparação (não lê o teste)
+python -m src.avaliacao_final --rodada-final 3 --avaliar-teste  # avaliação completa
+```
+
+Sem `--avaliar-teste`, o script valida a rodada, confere vazamento contra os
+gêneros bloqueados, treina o modelo e mostra um resumo; nada é gravado em
+`results/` e `teste_verificado.csv` não é aberto.
+
+Com `--avaliar-teste`:
+
+- confere o SHA256 do teste contra `teste_verificado.sha256` (para com erro se
+  não bater) e registra o uso em `results/etapa4_log_uso_teste.csv` (data e
+  hora, hash, configuração, limiar, rodada). Se já houver uso anterior, avisa:
+  **repetir a avaliação enquanto se altera o modelo invalida o teste**;
+- avalia no teste congelado: matriz de confusão; sensibilidade,
+  especificidade, precisão e acurácia com IC 95% de Wilson; F1 e AP com
+  bootstrap estratificado (2000 reamostragens, `--n-bootstrap`); linha de base
+  "tudo 0"; negativos por origem e falsos positivos por ordem;
+- no conjunto supervisionado final (base ∪ teste): validação agrupada por
+  gênero (5 dobras × sementes 42..51) e *leave-one-genus-out* dos gêneros de
+  morcego;
+- análise de erros com os 3 vizinhos mais próximos e pontuações das 8426
+  instâncias para a Etapa 5.
+
+Saídas em `results/`: `etapa4_metricas_teste.csv`,
+`etapa4_matriz_confusao_teste.csv`, `etapa4_cv_conjunto_final.csv`,
+`etapa4_logo_generos.csv`, `etapa4_erros.csv`, `etapa4_pontuacoes_todas.csv`,
+`etapa4_log_uso_teste.csv`, `relatorio_etapa4.md` e as figuras `etapa4_*.png`.
+
 ## Estrutura de pastas
 
 ```
@@ -226,6 +262,7 @@ src/
   experimento_etapa2.py  comparação dos classificadores e diagnóstico no oculto (Etapa 2)
   config_modelo.py    classificador escolhido e limiar padrão (Etapa 3+)
   enriquecimento.py   rodadas de enriquecimento, revisão manual e simulação (Etapa 3)
+  avaliacao_final.py  modelo final, avaliação no teste congelado e análise de erros (Etapa 4)
 tests/        testes (pytest)
   fixtures/   taxonomia fictícia, só para testes
 ```

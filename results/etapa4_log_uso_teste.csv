@@ -1,0 +1,2 @@
+data_hora,hash_teste,configuracao,limiar,rodada_final
+2026-11-24T13:24:03,68bc13a773dcaeee0a76ce1841ddee405b70ea24e90749839e0bc48a18215dbd,knn_frac|n_neighbors=3|weights=distance|metric=manhattan|sem_escala,0.6728,3

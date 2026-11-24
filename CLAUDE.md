@@ -17,6 +17,8 @@ python -m src.supervisao --fracao-semente 0.35 --max-especies-teste 9 --min-posi
 python -m src.experimento_etapa2             # Etapa 2: k-NN x SVM RBF x RF (~4 min)
 python -m src.enriquecimento --auto --ate-convergir   # Etapa 3: simulação só com gabarito (data/rounds/auto/)
 python -m src.enriquecimento --rodada 1      # Etapa 3: rodada manual (gera revisao_manual.csv)
+python -m src.avaliacao_final                # Etapa 4: só preparação (não lê o teste)
+python -m src.avaliacao_final --rodada-final 3 --avaliar-teste   # Etapa 4: avaliação no teste (registra uso)
 python scripts/montar_generos_mamiferos.py --mdd data/external/MDD_v2.5.csv --fonte "..." --data-acesso AAAA-MM-DD --names data/raw/Names.txt
 pytest                                       # todos os testes
 pytest tests/test_supervisao.py::nome_do_teste   # um teste
@@ -39,7 +41,9 @@ Pipeline em módulos de `src/`, cada etapa consumindo a saída da anterior:
 7. **`config_modelo.py`** — classificador fixo escolhido pela equipe na Etapa 2 (k-NN `knn_frac`, k=3, distância, manhattan, sem escala; `LIMIAR_PADRAO = 0.6728`). Use `construir_modelo()` em vez de repetir os parâmetros.
 8. **`enriquecimento.py`** — Etapa 3: `executar_rodada(n, dir_modo, ctx, modo)` lê a base da rodada anterior (+ decisões humanas de `revisao_manual.csv`), treina, seleciona candidatos (alta confiança ≥ limiar; incertos com 0 < pontuação < limiar), verifica pelo gabarito (só grupo `oculto`) e grava `data/rounds/rodada_NN/` (`base.csv`, `candidatos.csv`, `revisao_manual.csv`, `metricas.json`). `executar_auto` simula em `data/rounds/auto/` (recomeça do zero). `gerar_saidas` regera `results/etapa3_historico.csv`, `relatorio_etapa3.md` e figuras a partir de todas as rodadas gravadas.
 
-Etapas futuras (modelo final, avaliação no teste, `classes_finais.csv`/`indices_positivos.txt`) ainda não estão implementadas.
+9. **`avaliacao_final.py`** — Etapa 4: `carregar_base_final` (rodada manual convergida) → `verificar_base` (vazamento) → modelo final. Com `avaliar_teste=True`: `ler_teste_verificado` (única porta de leitura do teste, confere SHA256), `registrar_uso_teste`, métricas com `wilson` (proporções) e `bootstrap_f1_ap`, `cv_conjunto_final` e `logo_generos` no conjunto base ∪ teste, `tabela_erros`, `pontuacoes_todas` (8426 linhas para a Etapa 5); grava `results/etapa4_*` e `relatorio_etapa4.md`.
+
+Etapas futuras (`classes_finais.csv`/`indices_positivos.txt`, Etapa 5) ainda não estão implementadas.
 
 ### Convenções da modelagem (Etapa 2+)
 
@@ -49,6 +53,7 @@ Etapas futuras (modelo final, avaliação no teste, `classes_finais.csv`/`indice
 - Na Etapa 2 o treino é só `semente_reduzida.csv`.
 - Etapa 3: a base só cresce com origem verificada (`gabarito` ou `humano`), nunca com a predição sozinha. `revisao_manual.csv` aceita `decisao_humana` = `1`, `0`, `duvida` ou vazio (pendente); `duvida` sai do pool nas rodadas seguintes. Não refaça uma rodada com decisões preenchidas (o script recusa sem `--sobrescrever`).
 - As rodadas manuais (`data/rounds/rodada_NN/`) e a simulação (`data/rounds/auto/`) ficam separadas; o `--auto` apaga e refaz `data/rounds/auto/`.
+- Etapa 4: o teste congelado só é lido com `--avaliar-teste`, sempre por `ler_teste_verificado` (SHA256 conferido); cada uso vira uma linha em `results/etapa4_log_uso_teste.csv`. Nunca ajuste limiar, k ou qualquer hiperparâmetro olhando o teste — repetir a avaliação enquanto se altera o modelo invalida o teste. O modelo final exige uma rodada manual convergida.
 
 ### Invariantes que não podem ser quebradas
 
