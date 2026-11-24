@@ -33,6 +33,21 @@ aqui as decisões que mudarem o tratamento automático.
 |---|---|---|---|---|---|
 | | | | | | |
 
+## Modo semente reduzida (gabarito)
+
+A taxonomia do MDD v2.5 é usada como **gabarito** (`data/seeds/gabarito.csv`):
+serve para verificar candidatos e medir métricas, mas só o grupo `semente` entra
+no treino da rodada 0. Parâmetros da geração atual (`python -m src.supervisao`):
+
+| Parâmetro | Valor | Significado |
+|---|---|---|
+| `random_state` | 42 | teste: `default_rng(42)`; semente/oculto: `default_rng((42, 1))` |
+| `--fracao-semente` | 0.35 | fração dos gêneros fora do teste que vão para a semente (morcegos por família, outros mamíferos por ordem, com ao menos 1 gênero de Eulipotyphla) |
+| `--max-especies-teste` | 9 | gêneros com 10+ instâncias no Names.txt (ex.: *Myotis*) nunca vão para o teste |
+| `--min-positivos-teste` | 5 | após 1 gênero por família com 2+ gêneros, sorteia mais gêneros de morcego até 5 positivos |
+| `fracao` (teste de negativos) | 0.2 | como antes |
+| `--n-negativos` | 300 | negativos prováveis (sem gabarito) |
+
 ## Histórico do teste verificado
 
 O teste é congelado por SHA256 (`data/seeds/teste_verificado.sha256`). Só a
@@ -40,4 +55,4 @@ Pessoa A pode regerá-lo (`--sobrescrever-teste`), com aviso ao grupo.
 
 | Data | SHA256 (8 primeiros) | Motivo | Quem |
 |---|---|---|---|
-| | | | |
+| 2026-11-23 | 68bc13a7 | 1ª geração com o MDD v2.5, modo semente reduzida (189 instâncias: 5 morcegos de 5 gêneros, 184 negativos; 135 gêneros bloqueados) | |
